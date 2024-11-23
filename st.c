@@ -2603,8 +2603,8 @@ strhandle(void)
 		{ defaultcs, "cursor" }
 	};
 	#if SIXEL_PATCH
-	ImageList *im, *newimages, *next, *tail;
-	int i, x1, y1, x2, y2, numimages;
+	ImageList *im, *newimages, *next, *tail = NULL;
+	int i, x1, y1, x2, y2, y, numimages;
 	int cx, cy;
 	Line line;
 	#if SCROLLBACK_PATCH || REFLOW_PATCH
@@ -2654,6 +2654,11 @@ strhandle(void)
 				}
 			}
 			return;
+		#if OSC7_PATCH
+		case 7:
+			osc7parsecwd((const char *)strescseq.args[1]);
+			return;
+		#endif // OSC7_PATCH
 		case 8: /* Clear Hyperlinks */
 			return;
 		case 10:
@@ -2699,6 +2704,25 @@ strhandle(void)
 				tfulldirt();
 			}
 			return;
+		#if OSC133_PATCH
+		case 133:
+			if (narg < 2)
+				break;
+			switch (*strescseq.args[1]) {
+			case 'A':
+				term.c.attr.mode |= ATTR_FTCS_PROMPT;
+				break;
+			/* We don't handle these arguments yet */
+			case 'B':
+			case 'C':
+			case 'D':
+				break;
+			default:
+				fprintf(stderr, "erresc: unknown OSC 133 argument: %c\n", *strescseq.args[1]);
+				break;
+			}
+			return;
+		#endif // OSC133_PATCH
 		}
 		break;
 	case 'k': /* old title set compatibility */
@@ -2729,15 +2753,33 @@ strhandle(void)
 			y1 = newimages->y;
 			x2 = x1 + newimages->cols;
 			y2 = y1 + numimages;
-			if (newimages->transparent) {
-				for (tail = term.images; tail && tail->next; tail = tail->next);
-			} else {
-				for (tail = NULL, im = term.images; im; im = next) {
+			/* Delete the old images that are covered by the new image(s). We also need
+			 * to check if they have already been deleted before adding the new ones. */
+			if (term.images) {
+				char transparent[numimages];
+				for (i = 0, im = newimages; im; im = im->next, i++) {
+					transparent[i] = im->transparent;
+				}
+				for (im = term.images; im; im = next) {
 					next = im->next;
-					if (im->x >= x1 && im->x + im->cols <= x2 &&
-					    im->y >= y1 && im->y <= y2) {
-						delete_image(im);
-						continue;
+					if (im->y >= y1 && im->y < y2) {
+						y = im->y - scr;
+						if (y >= 0 && y < term.row && term.dirty[y]) {
+							line = term.line[y];
+							j = MIN(im->x + im->cols, term.col);
+							for (i = im->x; i < j; i++) {
+								if (line[i].mode & ATTR_SIXEL)
+									break;
+							}
+							if (i == j) {
+								delete_image(im);
+								continue;
+							}
+						}
+						if (im->x >= x1 && im->x + im->cols <= x2 && !transparent[im->y - y1]) {
+							delete_image(im);
+							continue;
+						}
 					}
 					tail = im;
 				}
@@ -2818,6 +2860,19 @@ strparse(void)
 
 	if (*p == '\0')
 		return;
+
+	/* preserve semicolons in window titles, icon names and OSC 7 sequences */
+	if (strescseq.type == ']' && (
+		p[0] <= '2'
+	#if OSC7_PATCH
+		|| p[0] == '7'
+	#endif // OSC7_PATCH
+	) && p[1] == ';') {
+		strescseq.args[strescseq.narg++] = p;
+		strescseq.args[strescseq.narg++] = p + 2;
+		p[1] = '\0';
+		return;
+	}
 
 	while (strescseq.narg < STR_ARG_SIZ) {
 		strescseq.args[strescseq.narg++] = p;
@@ -3431,6 +3486,9 @@ check_control_code:
 	}
 
 	tsetchar(u, &term.c.attr, term.c.x, term.c.y);
+	#if OSC133_PATCH
+	term.c.attr.mode &= ~ATTR_FTCS_PROMPT;
+	#endif // OSC133_PATCH
 	term.lastc = u;
 
 	if (width == 2) {

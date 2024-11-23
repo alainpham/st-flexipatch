@@ -301,6 +301,21 @@
  */
 #define OPENURLONCLICK_PATCH 0
 
+/* This patch allows st to fetch the current working directory through the OSC 7 escape
+ * sequence emitted by shells. Must be used with newterm patch.
+ *
+ * https://codeberg.org/dnkl/foot/wiki#spawning-new-terminal-instances-in-the-current-working-directory
+ * https://github.com/veltza/st-sx/commit/817865c2c6ed905af8849580e58bdcf399216fbd
+ */
+#define OSC7_PATCH 0
+
+/* This patch allows jumping between prompts by utilizing the OSC 133 escape sequence
+ * emitted by shells. Must be used with either reflow or scrollback patch.
+ *
+ * https://codeberg.org/dnkl/foot#jumping-between-prompts
+ */
+#define OSC133_PATCH 0
+
 /* Reflow.
  * Allows st to be resized without cutting off text when the terminal window is made larger again.
  * Text wraps when the terminal window is made smaller.

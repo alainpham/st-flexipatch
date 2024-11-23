@@ -70,6 +70,9 @@ enum glyph_attribute {
 	ATTR_HIGHLIGHT      = 1 << 17,
 	#endif // KEYBOARDSELECT_PATCH
 	ATTR_BOLD_FAINT = ATTR_BOLD | ATTR_FAINT,
+	#if OSC133_PATCH
+	ATTR_FTCS_PROMPT    = 1 << 18,  /* OSC 133 ; A ST */
+	#endif // OSC133_PATCH
 };
 
 #if SIXEL_PATCH
@@ -202,6 +205,9 @@ typedef struct {
 	ImageList *images_alt; /* sixel images for alternate screen */
 	#endif // SIXEL_PATCH
 	Rune lastc;   /* last printed char outside of sequence, 0 if control */
+	#if OSC7_PATCH
+	char* cwd;    /* current working directory */
+	#endif // OSC7_PATCH
 } Term;
 
 typedef union {
