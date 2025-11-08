@@ -29,7 +29,7 @@ static const int pseudotransparency = 0;
  *             0 = no border, 100 = border width is same as cell width */
 int borderperc = 20;
 #else
-static int borderpx = 20;
+static int borderpx = 18;
 #endif // RELATIVEBORDER_PATCH
 
 #if OPENURLONCLICK_PATCH
@@ -161,7 +161,7 @@ char *termname = "st-256color";
  *
  *	stty tabs
  */
-unsigned int tabspaces = 8;
+unsigned int tabspaces = 2;
 
 #if ALPHA_PATCH
 /* bg opacity */
