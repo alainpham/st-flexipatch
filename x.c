@@ -603,6 +603,13 @@ selnotify(XEvent *e)
 	if (property == None)
 		return;
 
+	#if DRAG_AND_DROP_PATCH
+	if (property == xw.XdndSelection) {
+		xdndsel(e);
+		return;
+	}
+	#endif // DRAG_AND_DROP_PATCH
+
 	do {
 		if (XGetWindowProperty(xw.dpy, xw.win, property, ofs,
 					BUFSIZ/4, False, AnyPropertyType,
@@ -973,6 +980,11 @@ xloadalpha(void)
 	dc.col[defaultbg].color.alpha = (unsigned short)(0xffff * usedAlpha);
 	dc.col[defaultbg].pixel &= 0x00FFFFFF;
 	dc.col[defaultbg].pixel |= (unsigned char)(0xff * usedAlpha) << 24;
+	#if SELECTION_COLORS_PATCH && SELECTIONBG_ALPHA_PATCH
+	dc.col[selectionbg].color.alpha = (unsigned short)(0xffff * usedAlpha);
+	dc.col[selectionbg].pixel &= 0x00FFFFFF;
+	dc.col[selectionbg].pixel |= (unsigned char)(0xff * usedAlpha) << 24;
+	#endif // SELECTION_COLORS_PATCH && SELECTIONBG_ALPHA_PATCH
 }
 #endif // ALPHA_FOCUS_HIGHLIGHT_PATCH
 
@@ -1034,6 +1046,18 @@ xloadcols(void)
 	dc.col[defaultbg].color.red   *= alpha;
 	dc.col[defaultbg].color.green *= alpha;
 	dc.col[defaultbg].color.blue  *= alpha;
+	#if SELECTION_COLORS_PATCH && SELECTIONBG_ALPHA_PATCH
+	/* set alpha value of selbg color */
+	dc.col[selectionbg].color.alpha = (unsigned short)(0xffff * alpha);
+	dc.col[selectionbg].pixel &= 0x00FFFFFF;
+	dc.col[selectionbg].pixel |= (unsigned char)(0xff * alpha) << 24;
+	dc.col[selectionbg].color.red =
+		((unsigned short)(dc.col[selectionbg].color.red * alpha)) & 0xff00;
+	dc.col[selectionbg].color.green =
+		((unsigned short)(dc.col[selectionbg].color.green * alpha)) & 0xff00;
+	dc.col[selectionbg].color.blue =
+		((unsigned short)(dc.col[selectionbg].color.blue * alpha)) & 0xff00;
+	#endif // SELECTION_COLORS_PATCH && SELECTIONBG_ALPHA_PATCH
 	#endif // ALPHA_PATCH
 	loaded = 1;
 }
@@ -1130,7 +1154,7 @@ xhints(void)
 	sizeh->flags = PSize | PResizeInc | PBaseSize | PMinSize;
 	sizeh->height = win.h;
 	sizeh->width = win.w;
-	#if ANYSIZE_PATCH || ANYSIZE_SIMPLE_PATCH
+	#if ANYSIZE_PATCH && !DYNAMIC_PADDING_PATCH || ANYSIZE_SIMPLE_PATCH
 	sizeh->height_inc = 1;
 	sizeh->width_inc = 1;
 	#else
@@ -1655,6 +1679,28 @@ xinit(int cols, int rows)
 	xw.netwmstate = XInternAtom(xw.dpy, "_NET_WM_STATE", False);
 	xw.netwmfullscreen = XInternAtom(xw.dpy, "_NET_WM_STATE_FULLSCREEN", False);
 	#endif // FULLSCREEN_PATCH
+
+	#if DRAG_AND_DROP_PATCH
+	/* Xdnd setup */
+	xw.XdndTypeList = XInternAtom(xw.dpy, "XdndTypeList", 0);
+	xw.XdndSelection = XInternAtom(xw.dpy, "XdndSelection", 0);
+	xw.XdndEnter = XInternAtom(xw.dpy, "XdndEnter", 0);
+	xw.XdndPosition = XInternAtom(xw.dpy, "XdndPosition", 0);
+	xw.XdndStatus = XInternAtom(xw.dpy, "XdndStatus", 0);
+	xw.XdndLeave = XInternAtom(xw.dpy, "XdndLeave", 0);
+	xw.XdndDrop = XInternAtom(xw.dpy, "XdndDrop", 0);
+	xw.XdndFinished = XInternAtom(xw.dpy, "XdndFinished", 0);
+	xw.XdndActionCopy = XInternAtom(xw.dpy, "XdndActionCopy", 0);
+	xw.XdndActionMove = XInternAtom(xw.dpy, "XdndActionMove", 0);
+	xw.XdndActionLink = XInternAtom(xw.dpy, "XdndActionLink", 0);
+	xw.XdndActionAsk = XInternAtom(xw.dpy, "XdndActionAsk", 0);
+	xw.XdndActionPrivate = XInternAtom(xw.dpy, "XdndActionPrivate", 0);
+	xw.XtextUriList = XInternAtom((Display*) xw.dpy, "text/uri-list", 0);
+	xw.XtextPlain = XInternAtom((Display*) xw.dpy, "text/plain", 0);
+	xw.XdndAware = XInternAtom(xw.dpy, "XdndAware", 0);
+	XChangeProperty(xw.dpy, xw.win, xw.XdndAware, 4, 32, PropModeReplace,
+			&XdndVersion, 1);
+	#endif // DRAG_AND_DROP_PATCH
 
 	win.mode = MODE_NUMLOCK;
 	resettitle();
@@ -2205,20 +2251,9 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 	else
 	#endif // BACKGROUND_IMAGE_PATCH
 
-	#if !WIDE_GLYPHS_PATCH
-	XftDrawRect(xw.draw, bg, winx, winy, width, win.ch);
-	#endif // WIDE_GLYPHS_PATCH
-
-	/* Set the clip region because Xft is sometimes dirty. */
-	r.x = 0;
-	r.y = 0;
-	r.height = win.ch;
-	r.width = width;
-	XftDrawSetClipRectangles(xw.draw, winx, winy, &r, 1);
-
-	#if WIDE_GLYPHS_PATCH
 	/* Fill the background */
 	XftDrawRect(xw.draw, bg, winx, winy, width, win.ch);
+	#if WIDE_GLYPHS_PATCH
 	}
 	#endif // WIDE_GLYPHS_PATCH
 
@@ -2229,12 +2264,27 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 	if (base.mode & ATTR_BOXDRAW) {
 		drawboxes(winx, winy, width / len, win.ch, fg, bg, specs, len);
 	} else {
-		/* Render the glyphs. */
-		XftDrawGlyphFontSpec(xw.draw, fg, specs, len);
-	}
+	#endif // BOXDRAW_PATCH
+	/* Set the clip region because Xft is sometimes dirty. */
+	#if WIDE_GLYPHS_PATCH
+	r.x = 0;
+	r.y = 0;
+	r.height = win.ch;
+	r.width = win.w;
+	XftDrawSetClipRectangles(xw.draw, 0, winy, &r, 1);
 	#else
+	r.x = 0;
+	r.y = 0;
+	r.height = win.ch;
+	r.width = width;
+	XftDrawSetClipRectangles(xw.draw, winx, winy, &r, 1);
+	#endif // WIDE_GLYPHS_PATCH
+
 	/* Render the glyphs. */
 	XftDrawGlyphFontSpec(xw.draw, fg, specs, len);
+
+	#if BOXDRAW_PATCH
+	}
 	#endif // BOXDRAW_PATCH
 
 	/* Render underline and strikethrough. */
@@ -2671,21 +2721,19 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 	XRenderColor colbg;
 	#endif // DYNAMIC_CURSOR_COLOR_PATCH
 
-	#if !DYNAMIC_CURSOR_COLOR_PATCH
-	/* remove the old cursor */
+	#if LIGATURES_PATCH
+	/* Redraw the line where cursor was previously.
+	 * It will restore the ligatures broken by the cursor. */
+	xdrawline(line, 0, oy, len);
+	#else
+	/* Remove the old cursor */
 	if (selected(ox, oy))
 		#if SELECTION_COLORS_PATCH
 		og.mode |= ATTR_SELECTED;
 		#else
 		og.mode ^= ATTR_REVERSE;
 		#endif // SELECTION_COLORS_PATCH
-	#endif // DYNAMIC_CURSOR_COLOR_PATCH
 
-	#if LIGATURES_PATCH
-	/* Redraw the line where cursor was previously.
-	 * It will restore the ligatures broken by the cursor. */
-	xdrawline(line, 0, oy, len);
-	#else
 	xdrawglyph(og, ox, oy);
 	#endif // LIGATURES_PATCH
 
@@ -2728,7 +2776,7 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 		}
 		#endif // SELECTION_COLORS_PATCH
 	} else {
-		#if SELECTION_COLORS_PATCH
+		#if SELECTION_COLORS_PATCH && !DYNAMIC_CURSOR_COLOR_PATCH
 		g.fg = defaultbg;
 		g.bg = defaultcs;
 		drawcol = dc.col[defaultcs];
@@ -3666,6 +3714,21 @@ cmessage(XEvent *e)
 	} else if (e->xclient.data.l[0] == xw.wmdeletewin) {
 		ttyhangup();
 		exit(0);
+	#if DRAG_AND_DROP_PATCH
+	} else if (e->xclient.message_type == xw.XdndEnter) {
+		xw.XdndSourceWin = e->xclient.data.l[0];
+		xw.XdndSourceVersion = e->xclient.data.l[1] >> 24;
+		xw.XdndSourceFormat = None;
+		if (xw.XdndSourceVersion > 5)
+			return;
+		xdndenter(e);
+	} else if (e->xclient.message_type == xw.XdndPosition
+			&& xw.XdndSourceVersion <= 5) {
+		xdndpos(e);
+	} else if (e->xclient.message_type == xw.XdndDrop
+			&& xw.XdndSourceVersion <= 5) {
+		xdnddrop(e);
+	#endif // DRAG_AND_DROP_PATCH
 	}
 }
 
@@ -3762,8 +3825,12 @@ run(void)
 
 		xev = 0;
 		while (XPending(xw.dpy)) {
-			xev = 1;
 			XNextEvent(xw.dpy, &ev);
+			#if BLINKING_CURSOR_PATCH
+			xev = (!xev || xev == SelectionRequest) ? ev.type : xev;
+			#else
+			xev = 1;
+			#endif // BLINKING_CURSOR_PATCH
 			if (XFilterEvent(&ev, None))
 				continue;
 			if (handler[ev.type])
@@ -3790,10 +3857,10 @@ run(void)
 			if (!drawing) {
 				trigger = now;
 				#if BLINKING_CURSOR_PATCH
-				if (IS_SET(MODE_BLINK)) {
-					win.mode ^= MODE_BLINK;
+				if (xev != SelectionRequest) {
+					win.mode &= ~MODE_BLINK;
+					lastblink = now;
 				}
-				lastblink = now;
 				#endif // BLINKING_CURSOR_PATCH
 				drawing = 1;
 			}

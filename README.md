@@ -1,4 +1,4 @@
-Similar to [dwm-flexipatch](https://github.com/bakkeby/dwm-flexipatch) this st 0.9.2 (6009e6e, 2024-11-25) project has a different take on st patching. It uses preprocessor directives to decide whether or not to include a patch during build time. Essentially this means that this build, for better or worse, contains both the patched _and_ the original code. The aim being that you can select which patches to include and the build will contain that code and nothing more.
+Similar to [dwm-flexipatch](https://github.com/bakkeby/dwm-flexipatch) this st 0.9.3 (688f70a, 2026-01-15) project has a different take on st patching. It uses preprocessor directives to decide whether or not to include a patch during build time. Essentially this means that this build, for better or worse, contains both the patched _and_ the original code. The aim being that you can select which patches to include and the build will contain that code and nothing more.
 
 For example to include the `alpha` patch then you would only need to flip this setting from 0 to 1 in [patches.h](https://github.com/bakkeby/st-flexipatch/blob/master/patches.def.h):
 ```c
@@ -14,6 +14,12 @@ Refer to [https://st.suckless.org/](https://st.suckless.org/) for details on the
 ---
 
 ### Changelog:
+
+2026-01-08 - Added the xresources-xdefaults patch
+
+2025-10-28 - Added the selectionbg-alpha patch
+
+2025-02-20 - Added the drag-n-drop and open-selected-text patches
 
 2024-05-31 - Added the anygeometry patch
 
@@ -162,6 +168,9 @@ Refer to [https://st.suckless.org/](https://st.suckless.org/) for details on the
    - [disable-fonts](https://st.suckless.org/patches/disable_bold_italic_fonts/)
       - this patch adds the option of disabling bold/italic/roman fonts globally
 
+   - [drag-n-drop](https://st.suckless.org/patches/drag-n-drop)
+      - allows dragging a file into the terminal and have the path printed
+
    - [dynamic-cursor-color](https://st.suckless.org/patches/dynamic-cursor-color/)
       - this patch makes the cursor color the inverse of the current cell color
 
@@ -230,6 +239,9 @@ Refer to [https://st.suckless.org/](https://st.suckless.org/) for details on the
    - [open-copied-url](https://st.suckless.org/patches/open_copied_url/)
       - open contents of the clipboard in a user-defined browser
 
+   - [open-selected-text](https://st.suckless.org/patches/open_selected_text)
+      - open the selected text using `xdg-open`
+
    - [openurlonclick](https://www.reddit.com/r/suckless/comments/cc83om/st_open_url/)
       - allows for URLs to be opened directly when you click on them
 
@@ -251,6 +263,10 @@ Refer to [https://st.suckless.org/](https://st.suckless.org/) for details on the
 
    - [right-click-to-plumb](https://st.suckless.org/patches/right_click_to_plumb/)
       - allows you to right-click on some selected text to send it to the plumbing program of choice
+
+   - [selectionbg-alpha](https://st.suckless.org/patches/selectionbg-alpha/)
+      - allows for the selection to have a transparent background when combined with the alpha
+        and selection colors patches
 
    - [scrollback](https://st.suckless.org/patches/scrollback/)
       - allows you scroll back through terminal output using keyboard shortcuts or mousewheel
@@ -326,3 +342,6 @@ Refer to [https://st.suckless.org/](https://st.suckless.org/) for details on the
    - [xresources](https://st.suckless.org/patches/xresources/)
       - adds the ability to configure st via Xresources
       - during startup, st will read and apply the resources named in the resources[] array in config.h
+
+   - xresources-xdefaults
+      - allows .Xdefaults to be read as well in addition to the RESOURCE_MANAGER property on the root window

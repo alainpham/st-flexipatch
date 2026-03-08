@@ -175,6 +175,15 @@ float alphaUnfocused = 0.6;
 #endif // ALPHA_FOCUS_HIGHLIGHT_PATCH
 #endif // ALPHA_PATCH
 
+#if DRAG_AND_DROP_PATCH
+/*
+ * drag and drop escape characters
+ *
+ * this will add a '\' before any characters specified in the string.
+ */
+char *xdndescchar = " !\"#$&'()*;<>?[\\]^`{|}~";
+#endif // DRAG_AND_DROP_PATCH
+
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
 	/* 8 normal colors */
@@ -362,6 +371,9 @@ static uint forcemousemod = ShiftMask;
  */
 static MouseShortcut mshortcuts[] = {
 	/* mask                 button   function        argument       release  screen */
+	#if OPEN_SELECTED_TEXT_PATCH
+	{ ControlMask,          Button2, selopen,        {.i = 0},      1 },
+	#endif // OPEN_SELECTED_TEXT_PATCH
 	#if CLIPBOARD_PATCH
 	{ XK_ANY_MOD,           Button2, clippaste,      {.i = 0},      1 },
 	#else
@@ -427,10 +439,10 @@ static Shortcut shortcuts[] = {
 	{ XK_NO_MOD,            XK_F11,         fullscreen,      {.i =  0} },
 	{ MODKEY,               XK_Return,      fullscreen,      {.i =  0} },
 	#endif // FULLSCREEN_PATCH
-	#if SCROLLBACK_PATCH
-	{ 0,            XK_Page_Up,     kscrollup,       {.i = -1}, S_PRI },
-	{ 0,            XK_Page_Down,   kscrolldown,     {.i = -1}, S_PRI },
-	#endif // SCROLLBACK_PATCH
+	#if SCROLLBACK_PATCH || REFLOW_PATCH
+	{ ShiftMask,            XK_Page_Up,     kscrollup,       {.i = -1}, S_PRI },
+	{ ShiftMask,            XK_Page_Down,   kscrolldown,     {.i = -1}, S_PRI },
+	#endif // SCROLLBACK_PATCH || REFLOW_PATCH
 	#if CLIPBOARD_PATCH
 	{ TERMMOD,              XK_Y,           clippaste,       {.i =  0} },
 	{ ShiftMask,            XK_Insert,      clippaste,       {.i =  0} },
