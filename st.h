@@ -34,7 +34,7 @@
 #define TRUECOLOR(r,g,b)	(1 << 24 | (r) << 16 | (g) << 8 | (b))
 #define IS_TRUECOL(x)		(1 << 24 & (x))
 #if SCROLLBACK_PATCH || REFLOW_PATCH
-#define HISTSIZE      2000
+#define HISTSIZE      10000
 #endif // SCROLLBACK_PATCH | REFLOW_PATCH
 
 #if DRAG_AND_DROP_PATCH
